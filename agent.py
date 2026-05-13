@@ -11,17 +11,28 @@ import json
 from openai import OpenAI
 from tools import get_tool_definitions, execute_tool
 from permissions import check_permission
+from session import SessionStore
+from context import ContextCompressor
 
 
 class Agent:
-    def __init__(self, client: OpenAI, model: str, system_prompt: str):
+    def __init__(self, client: OpenAI, model: str, system_prompt: str,
+                 session_store: SessionStore, compressor: ContextCompressor):
         self.client = client
         self.model = model
         self.system_prompt = system_prompt
+        self.session_store = session_store
+        self.compressor = compressor
         self.messages: list = []
+        self.session_id: str = session_store.new_session_id()
 
     def run(self, user_input: str) -> str:
         self.messages.append({"role": "user", "content": user_input})
+
+        # 压缩检查
+        if self.compressor.should_compress(self.messages):
+            print("  [compacting context...]")
+            self.messages = self.compressor.compress(self.messages)
 
         while True:
             response = self.client.chat.completions.create(
@@ -35,6 +46,7 @@ class Agent:
             self.messages.append(assistant_message)
 
             if not assistant_message.get("tool_calls"):
+                self._auto_save()
                 return assistant_message.get("content", "")
 
             for tool_call in assistant_message["tool_calls"]:
@@ -118,3 +130,14 @@ class Agent:
                 s = s[:40] + "..."
             parts.append(f"{k}={s}")
         return ", ".join(parts)
+
+    def _auto_save(self):
+        self.session_store.save(self.session_id, self.messages)
+
+    def load_session(self, session_id: str):
+        self.session_id = session_id
+        self.messages = self.session_store.load(session_id)
+
+    def new_session(self):
+        self.session_id = self.session_store.new_session_id()
+        self.messages = []

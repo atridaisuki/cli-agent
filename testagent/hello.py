@@ -1,7 +1,12 @@
-#!/usr/bin/env python3
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
 
 def main():
-    print("Hello from testagent!")
+    logger.info("Hello from testagent!")
+
 
 if __name__ == "__main__":
     main()
