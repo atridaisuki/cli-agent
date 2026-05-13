@@ -10,6 +10,7 @@ while True:
 import json
 from openai import OpenAI
 from tools import get_tool_definitions, execute_tool
+from permissions import check_permission
 
 
 class Agent:
@@ -40,7 +41,11 @@ class Agent:
                 name = tool_call["function"]["name"]
                 args = json.loads(tool_call["function"]["arguments"])
                 print(f"  → {name}({self._summarize_args(args)})")
-                result = execute_tool(name, args)
+
+                if not check_permission(name, args):
+                    result = "User denied this operation."
+                else:
+                    result = execute_tool(name, args)
                 self.messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call["id"],

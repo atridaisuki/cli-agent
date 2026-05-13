@@ -35,9 +35,17 @@ def execute_tool(name: str, arguments: dict) -> str:
 def _register_all():
     from tools import read_file
     from tools import run_command
+    from tools import write_file
+    from tools import edit_file
+    from tools import grep
+    from tools import glob_files
 
     read_file.register()
     run_command.register()
+    write_file.register()
+    edit_file.register()
+    grep.register()
+    glob_files.register()
 
 
 _register_all()
